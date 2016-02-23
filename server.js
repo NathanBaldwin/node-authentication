@@ -3,8 +3,11 @@ const express = require('express');
 const app = express();
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
-const session = require('express-session');
+const session = require('express-session');//creates connect.sid cookie
 const RedisStore = require('connect-redis')(session); //what is happening here?
+const methodOverride = require('method-override');
+const passport = require('passport'); //express oath module
+
 
 const userRoutes = require('./lib/user/routes');
 const PORT = process.env.PORT || 3000;
@@ -15,8 +18,12 @@ app.use(bodyParser.urlencoded({extended: false}));
 app.use(session({
   secret: SESSION_SECRET, //creates session object on req (logged below)
   // cookie: {maxAge: 60000}
-  store: new RedisStore
+  store: new RedisStore //res store stores our session info in a place that
+  //isn't in node's memory. It's in the redis database on your memory, not node's memory.
+  //So, if we restart our server, we'll still have our user data.
 }));
+
+app.use(methodOverride('_method'));
 
 app.use((req, res, next) => {
   req.session.visits = req.session.visits || {};
@@ -37,6 +44,9 @@ app.use((req, res, next) => {
   //res.locals is unique to user. Everyone can see app.locals.
   next();
 });
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 app.use(userRoutes);
 
